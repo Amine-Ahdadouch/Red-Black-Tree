@@ -1,6 +1,16 @@
 #include "RBT.h"
 
-// get blackheight of a red black tree
+// Create a red black tree
+struct rbt *createNode(int value) {
+  struct rbt *newnode;
+  newnode = (struct rbt *)malloc(sizeof(struct rbt));
+  newnode->value = value;
+  newnode->color = RED;
+  newnode->left = newnode->right = NULL;
+  return newnode;
+}
+
+// Get blackheight of a red black tree
 int getBlackHeight(struct rbt *parent) {
     if (parent == NULL) {
         return 0;
@@ -13,82 +23,70 @@ int getBlackHeight(struct rbt *parent) {
 }
 // rotate left of a red black tree with a given parent node
 struct rbt *rot_left(struct rbt *parent){
-    struct rbt *temp = parent->right;
-    parent->right = temp->left;
-    temp->left = parent;
-    temp->color = parent->color;
-    parent->color = RED;
-    return temp;
+    struct rbt *resNode = parent->right;
+    struct rbt *temp = resNode->left;
+    resNode->left = parent;
+    parent->right = temp;
+    parent->father = resNode;
+    if (temp != NULL){
+        temp->father = parent;
+    }
+    return resNode;
 }
 // rotate right of a red black tree with a given parent node
 struct rbt *rot_right(struct rbt *parent){
-    struct rbt *temp = parent->left;
-    parent->left = temp->right;
-    temp->right = parent;
-    temp->color = parent->color;
-    parent->color = RED;
-    return temp;
+    struct rbt *resNode = parent->left;
+    struct rbt *temp = resNode->right;
+    resNode->right = parent;
+    parent->left = temp;
+    parent->father = resNode;
+    if (temp != NULL){
+        temp->father = parent;
+    }
+    return resNode;
 }
-
-//insertnode in a red black tree and balance the tree
-struct rbt *insertNode(struct rbt *parent, int value){
-    if (parent == NULL) {
-        struct rbt *new_node = malloc(sizeof(struct rbt));
-        new_node->value = value;
-        new_node->left = NULL;
-        new_node->right = NULL;
-        new_node->color = BLACK;
-        return new_node;
+// insert node into a red black tree
+struct rbt *insertNode(struct rbt *root, int value){
+    if (root  == NULL){
+        return createNode(value);
     }
-    if (value < parent->value) {
-        if (parent->left == NULL) {
-            struct rbt *new_node = malloc(sizeof(struct rbt));
-            new_node->value = value;
-            new_node->left = NULL;
-            new_node->right = NULL;
-            new_node->color = RED;
-            parent->left = new_node;
-        }
-        else {
-            parent->left = insertNode(parent->left, value);
-        }
-    } else if (value > parent->value) {
-        if (parent->right == NULL) {
-            struct rbt *new_node = malloc(sizeof(struct rbt));
-            new_node->value = value;
-            new_node->left = NULL;
-            new_node->right = NULL;
-            new_node->color = RED;
-            parent->right = new_node;
-        }
-        else {
-            parent->right = insertNode(parent->right, value);
-        }
+    if (root->value < value){
+        root->right = insertNode(root->right, value);
     } else {
-        return parent;
-
+        root->left = insertNode(root->left, value);
     }
-    // balance the tree 
-    if (parent->color == RED) {
-
-        if (parent->left != NULL && parent->left->color == RED) {
-            if ( parent->left->left != NULL && parent->left->left->color == RED) {
-                parent = rot_right(parent);
-            } else if (parent->left->right != NULL && parent->left->right->color == RED) {
-                parent->left = rot_left(parent->left);
-                parent = rot_right(parent);
-            }
-        }
-        else if (parent->right != NULL && parent->right->color == RED) {
-            if (parent->right->right != NULL && parent->right->right->color == RED) {
-                parent = rot_left(parent);
-            } else if (parent->right->left != NULL && parent->right->left->color == RED) {
-                parent->right = rot_right(parent->right);
-                parent = rot_left(parent);
-            }
+    // case 1 : root is the root of the tree
+    if (root->father == NULL){
+        root->color = BLACK;
+    }
+    // case 2 : inserted node uncle is red and inserted node is red (just recolor)
+    if (root->color == RED && root->father->father != NULL && root->father != root->father->father->left && root->father->father->left->color == RED){
+        root->father->father->color = RED;
+        root->father->father->left->color = BLACK;
+        root->father->father->right->color = BLACK;
+    }
+    // case 3 : inserted node uncle is black and inserted node is red and inserted node is left child of its father (rotations)
+    if (root->color == RED && root->father->father != NULL && root->father != root->father->father->left && root->father->father->left->color == BLACK){
+        if (root == root->father->left){
+            root->father = rot_right(root->father);
+        } else {
+            root->father->color = BLACK;
+            root->father->father->color = RED;
+            root->father->father = rot_left(root->father->father);
         }
     }
-    return parent;
+    //case 3 reversed : inserted node uncle is black and inserted node is red and inserted node is right child of its father (rotations)
+    if (root->color == RED && root->father->father != NULL && root->father != root->father->father->right && root->father->father->right->color == BLACK){
+        if (root == root->father->right){
+            root->father = rot_left(root->father);
+        } else {
+            root->father->color = BLACK;
+            root->father->father->color = RED;
+            root->father->father = rot_right(root->father->father);
+        }
+    }
+    //case 4 : 
+    return root;
 }
 
 void printTree(struct rbt *root){

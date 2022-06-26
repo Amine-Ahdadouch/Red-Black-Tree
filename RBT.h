@@ -22,14 +22,17 @@ enum color_rbt
 struct rbt
 {
     int value;
+    struct rbt *father;
     struct rbt *left;
     struct rbt *right;
     enum color_rbt color;
 };
 
+// Create a red-black tree
+struct rbt *createNode(int value);
 int getBlackHeight(struct rbt *parent);
 struct rbt *rot_left(struct rbt *parent);
 struct rbt *rot_right(struct rbt *parent);
-struct rbt *insertNode(struct rbt *parent, int value);
+struct rbt *insertNode(struct rbt *root, int value);
 
 #endif
