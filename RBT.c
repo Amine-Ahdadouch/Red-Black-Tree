@@ -136,6 +136,7 @@ void insertFixup(struct rbt **root, struct rbt **z){
     (*root)->color = BLACK;
 
 }
+
 // normal insert function, insert a node to the tree and use fix function to fix the tree
 struct rbt *insertNode(struct rbt *root, int value){
     struct rbt *z = createNode(value);
@@ -177,8 +178,8 @@ void printTree(struct rbt *root){
     }
 }
 
-
 int main() {
+    
     // test insertNode
     struct rbt *root = NULL;
 
