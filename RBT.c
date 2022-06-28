@@ -10,85 +10,157 @@ struct rbt *createNode(int value) {
   return newnode;
 }
 
-// Get blackheight of a red black tree
-int getBlackHeight(struct rbt *parent) {
-    if (parent == NULL) {
-        return 0;
-    }
-    if (parent->color == BLACK) {
-        return 1 + getBlackHeight(parent->left) + getBlackHeight(parent->right);
-    } else {
-        return getBlackHeight(parent->left);
-    }
+// rotate left from two given pointers root and (parent or grandparent) depand on the case
+void rot_left(struct rbt **root, struct rbt **x)
+{
+    struct rbt* y = (*x)->right;
+    (*x)->right = y->left;
+
+    if(y->left!=NULL)
+        y->left->parent = *x;
+
+    y->parent = (*x)->parent;
+
+    if((*x)->parent == NULL)
+        *root = y;
+
+    else if(*x == (*x)->parent->left)
+        (*x)->parent->left = y;
+
+    else
+        (*x)->parent->right = y;
+
+    y->left = *x;
+
+    (*x)->parent = y;
+
 }
-// rotate left of a red black tree with a given parent node
-struct rbt *rot_left(struct rbt *parent){
-    struct rbt *resNode = parent->right;
-    struct rbt *temp = resNode->left;
-    resNode->left = parent;
-    parent->right = temp;
-    parent->father = resNode;
-    if (temp != NULL){
-        temp->father = parent;
-    }
-    return resNode;
+// rotate right from two given pointers root and (parent or grandparent) depand on the case
+void rot_right(struct rbt **root, struct rbt **x)
+{
+    struct rbt* y = (*x)->left;
+    (*x)->left = y->right;
+
+    if(y->right!=NULL)
+        y->right->parent = *x;
+
+    y->parent = (*x)->parent;
+
+    if((*x)->parent==NULL)
+        *root = y;
+
+    else if((*x)== (*x)->parent->left)
+        (*x)->parent->left = y;
+
+    else
+        (*x)->parent->right = y;
+
+    y->right = *x;
+    (*x)->parent = y;
+
 }
-// rotate right of a red black tree with a given parent node
-struct rbt *rot_right(struct rbt *parent){
-    struct rbt *resNode = parent->left;
-    struct rbt *temp = resNode->right;
-    resNode->right = parent;
-    parent->left = temp;
-    parent->father = resNode;
-    if (temp != NULL){
-        temp->father = parent;
+
+// iterate through the red black red and fix it either by coloring or rotating nodes using pointers
+void insertFixup(struct rbt **root, struct rbt **z){
+    struct rbt *grandparent = NULL;
+    struct rbt *parentpt = NULL;
+
+    while(((*z) != *root) && ((*z)->color != BLACK) && ((*z)->parent->color == RED))
+    {
+        // getting parent and grandparent
+        parentpt = (*z)->parent;
+        grandparent = (*z)->parent->parent;
+
+        // z parent is a left child of grandparent
+        if(parentpt == grandparent->left)
+        {
+            struct rbt* uncle = grandparent->right;
+
+            // case 1.1: uncle is red juste recolor
+            if(uncle!=NULL && uncle->color == RED)
+            {
+                grandparent->color = RED;
+                parentpt->color = BLACK;
+                uncle->color = BLACK;
+                *z = grandparent;
+            }
+
+            // uncle is black
+            else
+            {
+                // z uncle is black and z is a right child of parent rotate left the parent
+                if((*z) == parentpt->right)
+                {
+                    rot_left(root, &parentpt);
+                    (*z) = parentpt;
+                    parentpt = (*z)->parent;
+                }
+                // z s uncle is black and z is a left child of parent rotate right the grandparent
+                rot_right(root, &grandparent);
+                parentpt->color = BLACK;
+                grandparent->color = RED;
+                (*z) = parentpt;
+            }
+        }
+
+        // do the same thing but with the opposite case 
+        else
+        {
+            struct rbt* uncle = grandparent->left;
+
+            if(uncle!=NULL && uncle->color == RED)
+            {
+                grandparent->color = RED;
+                parentpt->color = BLACK;
+                uncle->color = BLACK;
+                (*z) = grandparent;
+            }
+
+            else
+            {
+                if((*z) == parentpt->left)
+                {
+                    rot_right(root, &parentpt);
+                    (*z) = parentpt;
+                    parentpt = (*z)->parent;
+                }
+
+                rot_left(root, &grandparent);
+                parentpt->color = BLACK;
+                grandparent->color = RED;
+                (*z) = parentpt;
+            }
+        }
     }
-    return resNode;
+    // root color is black 
+    (*root)->color = BLACK;
+
 }
-// insert node into a red black tree
+// normal insert function, insert a node to the tree and use fix function to fix the tree
 struct rbt *insertNode(struct rbt *root, int value){
-    if (root  == NULL){
-        return createNode(value);
+    struct rbt *z = createNode(value);
+    struct rbt *y = NULL;
+    struct rbt *x = root;
+    while(x != NULL)
+    {
+        y = x;
+        if(z->value < x->value)
+            x = x->left;
+        else
+            x = x->right;
     }
-    if (root->value < value){
-        root->right = insertNode(root->right, value);
-    } else {
-        root->left = insertNode(root->left, value);
-    }
-    // case 1 : root is the root of the tree
-    if (root->father == NULL){
-        root->color = BLACK;
-    }
-    // case 2 : inserted node uncle is red and inserted node is red (just recolor)
-    if (root->color == RED && root->father->father != NULL && root->father != root->father->father->left && root->father->father->left->color == RED){
-        root->father->father->color = RED;
-        root->father->father->left->color = BLACK;
-        root->father->father->right->color = BLACK;
-    }
-    // case 3 : inserted node uncle is black and inserted node is red and inserted node is left child of its father (rotations)
-    if (root->color == RED && root->father->father != NULL && root->father != root->father->father->left && root->father->father->left->color == BLACK){
-        if (root == root->father->left){
-            root->father = rot_right(root->father);
-        } else {
-            root->father->color = BLACK;
-            root->father->father->color = RED;
-            root->father->father = rot_left(root->father->father);
-        }
-    }
-    //case 3 reversed : inserted node uncle is black and inserted node is red and inserted node is right child of its father (rotations)
-    if (root->color == RED && root->father->father != NULL && root->father != root->father->father->right && root->father->father->right->color == BLACK){
-        if (root == root->father->right){
-            root->father = rot_left(root->father);
-        } else {
-            root->father->color = BLACK;
-            root->father->father->color = RED;
-            root->father->father = rot_right(root->father->father);
-        }
-    }
-    //case 4 : 
+    z->parent = y;
+    if(y==NULL)
+        root = z;
+    else if(z->value < y->value)
+        y->left = z;
+    else
+        y->right = z;
+    insertFixup(&root, &z);
     return root;
 }
 
+// print the tree and colors from a given root
 void printTree(struct rbt *root){
     printf("%d ", root->value);
     if (root->color == RED) {
@@ -109,6 +181,7 @@ void printTree(struct rbt *root){
 int main() {
     // test insertNode
     struct rbt *root = NULL;
+
     root = insertNode(root, 13);
     root = insertNode(root, 8);
     root = insertNode(root, 1);
@@ -124,4 +197,3 @@ int main() {
 
     return 0;
 }
-
